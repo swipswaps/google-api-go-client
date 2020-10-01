@@ -17,6 +17,7 @@ import (
 	"go.opencensus.io/plugin/ocgrpc"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/internal"
+	"google.golang.org/api/internal/setting/grpcsetting"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -77,7 +78,7 @@ func DialPool(ctx context.Context, opts ...option.ClientOption) (ConnPool, error
 		return o.GRPCConnPool, nil
 	}
 	poolSize := o.GRPCConnPoolSize
-	if o.GRPCConn != nil {
+	if o.IsSet(internal.GRPCConnSettingKey) {
 		// WithGRPCConn is technically incompatible with WithGRPCConnectionPool.
 		// Always assume pool size is 1 when a grpc.ClientConn is explicitly used.
 		poolSize = 1
@@ -109,8 +110,8 @@ func dial(ctx context.Context, insecure bool, o *internal.DialSettings) (*grpc.C
 	if o.HTTPClient != nil {
 		return nil, errors.New("unsupported HTTP client specified")
 	}
-	if o.GRPCConn != nil {
-		return o.GRPCConn, nil
+	if v := grpcsetting.GetGRPCConnSetting(o); v != nil {
+		return v, nil
 	}
 	var grpcOpts []grpc.DialOption
 	if insecure {

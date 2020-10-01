@@ -12,7 +12,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/internal"
 	"google.golang.org/api/internal/impersonate"
-	"google.golang.org/grpc"
+	"google.golang.org/api/option/grpcoption"
 )
 
 // A ClientOption is an option for a Google API client.
@@ -120,41 +120,17 @@ func (w withHTTPClient) Apply(o *internal.DialSettings) {
 // used with services that support gRPC as their communication transport. When
 // used, the WithGRPCConn option takes precedent over all other supplied
 // options.
-func WithGRPCConn(conn *grpc.ClientConn) ClientOption {
-	return withGRPCConn{conn}
-}
-
-type withGRPCConn struct{ conn *grpc.ClientConn }
-
-func (w withGRPCConn) Apply(o *internal.DialSettings) {
-	o.GRPCConn = w.conn
-}
+var WithGRPCConn = grpcoption.WithGRPCConn
 
 // WithGRPCDialOption returns a ClientOption that appends a new grpc.DialOption
 // to an underlying gRPC dial. It does not work with WithGRPCConn.
-func WithGRPCDialOption(opt grpc.DialOption) ClientOption {
-	return withGRPCDialOption{opt}
-}
-
-type withGRPCDialOption struct{ opt grpc.DialOption }
-
-func (w withGRPCDialOption) Apply(o *internal.DialSettings) {
-	o.GRPCDialOpts = append(o.GRPCDialOpts, w.opt)
-}
+var WithGRPCDialOption = grpcoption.WithGRPCDialOption
 
 // WithGRPCConnectionPool returns a ClientOption that creates a pool of gRPC
 // connections that requests will be balanced between.
 //
 // This is an EXPERIMENTAL API and may be changed or removed in the future.
-func WithGRPCConnectionPool(size int) ClientOption {
-	return withGRPCConnectionPool(size)
-}
-
-type withGRPCConnectionPool int
-
-func (w withGRPCConnectionPool) Apply(o *internal.DialSettings) {
-	o.GRPCConnPoolSize = int(w)
-}
+var WithGRPCConnectionPool = grpcoption.WithGRPCConnectionPool
 
 // WithAPIKey returns a ClientOption that specifies an API key to be used
 // as the basis for authentication.

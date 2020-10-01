@@ -119,7 +119,7 @@ func newSettings(opts []option.ClientOption) (*internal.DialSettings, error) {
 	if err := o.Validate(); err != nil {
 		return nil, err
 	}
-	if o.GRPCConn != nil {
+	if o.IsSet(internal.GRPCConnSettingKey) {
 		return nil, errors.New("unsupported gRPC connection specified")
 	}
 	return &o, nil

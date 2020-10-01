@@ -16,6 +16,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	GRPCConnSettingKey = SettingKey("GRPCConnSettingKey")
+)
+
+// SettingKey is a value used to retrieve a setting from DialSettings. Must be
+// unique.
+type SettingKey string
+
 // DialSettings holds information needed to establish a connection with a
 // Google API service.
 type DialSettings struct {
@@ -32,7 +40,6 @@ type DialSettings struct {
 	Audiences           []string
 	HTTPClient          *http.Client
 	GRPCDialOpts        []grpc.DialOption
-	GRPCConn            *grpc.ClientConn
 	GRPCConnPool        ConnPool
 	GRPCConnPoolSize    int
 	NoAuth              bool
@@ -46,6 +53,33 @@ type DialSettings struct {
 	// https://cloud.google.com/apis/docs/system-parameters
 	QuotaProject  string
 	RequestReason string
+
+	m map[SettingKey]interface{}
+}
+
+// SetSetting sets a setting to a value. Should not be called directly but
+// instead from a setting's Apply method.
+func (ds *DialSettings) SetSetting(k SettingKey, v interface{}) {
+	if ds.m == nil {
+		ds.m = make(map[SettingKey]interface{})
+	}
+	ds.m[k] = v
+}
+
+// GetSetting gets a setting for a given key. Should not be called directly but
+// instead from Get helpers that return the proper types.
+func (ds *DialSettings) GetSetting(k SettingKey) (v interface{}, ok bool) {
+	if ds.m == nil {
+		ds.m = make(map[SettingKey]interface{})
+	}
+	v, ok = ds.m[k]
+	return
+}
+
+// IsSet checks if a setting is set.
+func (ds *DialSettings) IsSet(k SettingKey) bool {
+	_, ok := ds.m[k]
+	return ok
 }
 
 // Validate reports an error if ds is invalid.
@@ -83,13 +117,13 @@ func (ds *DialSettings) Validate() error {
 	if nCreds > 1 && !(nCreds == 2 && ds.TokenSource != nil && ds.CredentialsFile != "") {
 		return errors.New("multiple credential options provided")
 	}
-	if ds.GRPCConn != nil && ds.GRPCConnPool != nil {
+	if ds.IsSet(GRPCConnSettingKey) && ds.GRPCConnPool != nil {
 		return errors.New("WithGRPCConn is incompatible with WithConnPool")
 	}
 	if ds.HTTPClient != nil && ds.GRPCConnPool != nil {
 		return errors.New("WithHTTPClient is incompatible with WithConnPool")
 	}
-	if ds.HTTPClient != nil && ds.GRPCConn != nil {
+	if ds.HTTPClient != nil && ds.IsSet(GRPCConnSettingKey) {
 		return errors.New("WithHTTPClient is incompatible with WithGRPCConn")
 	}
 	if ds.HTTPClient != nil && ds.GRPCDialOpts != nil {
@@ -104,7 +138,7 @@ func (ds *DialSettings) Validate() error {
 	if ds.HTTPClient != nil && ds.ClientCertSource != nil {
 		return errors.New("WithHTTPClient is incompatible with WithClientCertSource")
 	}
-	if ds.ClientCertSource != nil && (ds.GRPCConn != nil || ds.GRPCConnPool != nil || ds.GRPCConnPoolSize != 0 || ds.GRPCDialOpts != nil) {
+	if ds.ClientCertSource != nil && (ds.IsSet(GRPCConnSettingKey) || ds.GRPCConnPool != nil || ds.GRPCConnPoolSize != 0 || ds.GRPCDialOpts != nil) {
 		return errors.New("WithClientCertSource is currently only supported for HTTP. gRPC settings are incompatible")
 	}
 	if ds.ImpersonationConfig != nil && len(ds.ImpersonationConfig.Scopes) == 0 && len(ds.Scopes) == 0 {

@@ -82,7 +82,6 @@ func TestApply(t *testing.T) {
 		Scopes:            []string{"https://example.com/auth/helloworld", "https://example.com/auth/otherthing"},
 		UserAgent:         "ua",
 		Endpoint:          "https://example.com:443",
-		GRPCConn:          conn,
 		Credentials:       &google.DefaultCredentials{ProjectID: "p"},
 		CredentialsFile:   "service-account.json",
 		CredentialsJSON:   []byte(`{some: "json"}`),
@@ -92,7 +91,8 @@ func TestApply(t *testing.T) {
 		RequestReason:     "Request Reason",
 		TelemetryDisabled: true,
 	}
-	if !cmp.Equal(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{})) {
+	want.SetSetting(internal.GRPCConnSettingKey, conn)
+	if !cmp.Equal(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{}), cmp.AllowUnexported(internal.DialSettings{})) {
 		t.Errorf(cmp.Diff(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{})))
 	}
 }
